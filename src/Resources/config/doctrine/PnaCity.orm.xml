@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                          http://raw.github.com/doctrine/doctrine2/master/doctrine-mapping.xsd">
+
+    <entity name="Nassau\PocztaPolskaPnaBundle\Entity\PnaCity" table="pna_city" repository-class="Nassau\PocztaPolskaPnaBundle\Entity\PnaCityRepository">
+
+        <id name="id" type="integer" column="id">
+            <generator strategy="AUTO"/>
+        </id>
+
+        <field name="name" column="name" type="string" nullable="false"/>
+        <field name="commune" column="commune" type="string" nullable="false"/>
+        <field name="county" column="county" type="string" nullable="false"/>
+        <field name="province" column="province" type="string" nullable="false"/>
+        <field name="code" column="code" type="string" nullable="true"/>
+
+
+        <unique-constraints>
+            <unique-constraint columns="name,commune,county,province" name="name"/>
+        </unique-constraints>
+
+        <one-to-many target-entity="Nassau\PocztaPolskaPnaBundle\Entity\PnaStreet" mapped-by="city" field="streets">
+            <cascade>
+                <cascade-all/>
+            </cascade>
+        </one-to-many>
+    </entity>
+
+</doctrine-mapping>

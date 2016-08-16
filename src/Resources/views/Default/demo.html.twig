@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Poczta Polska PNA demo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-3-typeahead/4.0.1/bootstrap3-typeahead.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/algoliasearch/3.18.0/algoliasearchLite.min.js"></script>
+</head>
+
+<body>
+<div class="container">
+    <h1>Poczta polska PNA codes</h1>
+    <div class="row">
+        <div class="col-sm-6">
+            {% if valid %}<p class="alert alert-success">Adres jest poprawny!</p>{% endif %}
+            {% form_theme form 'bootstrap_3_layout.html.twig' %}
+            {{ form(form) }}
+        </div>
+        <div class="col-sm-6">
+
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var index = algoliasearch({{ appId|json_encode|raw }}, {{ apiKey| json_encode|raw }}).initIndex({{ indexName|json_encode|raw }});
+    var city = null, emptyStreets = {streets: [], ranges: {}}, streets = emptyStreets;
+
+    var $formCity = $("#form_city");
+    var $formStreet = $("#form_street");
+    var $formHouseNumber = $("#form_house_number");
+    var $formPostCode = $("#form_post_code");
+    var $formCommune = $("#form_commune");
+    var $formCounty = $("#form_county");
+    var $formProvince = $("#form_province");
+
+    function unique(el, index, arr) {
+        return index === arr.indexOf(el);
+    }
+
+    function algoliaProvider(query, callback) {
+        index.search(query, {
+            "hitsPerPage": 10,
+            "highlightPreTag": "<mark>",
+            "highlightPostTag": "</mark>"
+        }, function searchDone(err, content) {
+            callback(content.hits);
+        });
+    }
+
+    function getAllCodes() {
+        return $.map(streets.ranges, function (item) {
+            return item.map(function(item) { return item.code; });
+        }).filter(unique);
+    }
+
+    function getCodesForStreet(name) {
+        if (!streets.streets.length) {
+            name = "";
+        }
+
+        return streets.ranges[name] || [];
+    }
+
+    function get_highlight(item, key) {
+        return item._highlightResult[key] ? item._highlightResult[key].value : item[key];
+    }
+
+    function updateCity(item) {
+        city = item;
+        updateStreets(emptyStreets);
+
+        $formPostCode.attr('readonly', !!item.code).val(item.code).typeahead("destroy");
+        $formCommune.val(item.commune);
+        $formCounty.val(item.county);
+        $formProvince.val(item.province);
+
+        if (!item.code) {
+            $.ajax({
+                "url": ({{ path("poczta_polska_pna_get_streets")|json_encode|raw }}),
+                "method": "POST",
+                "data": {
+                    "city": item.name,
+                    "commune": item.commune,
+                    "county": item.county,
+                    "province":  item.province
+                },
+                "beforeSend": function () {
+                    $formStreet.attr('disabled', 'disabled').val("").attr('placeholder', 'Ładowanie…');
+                },
+                "success": function (data) {
+                    updateStreets(data);
+                }
+            });
+        }
+    }
+
+    function matchRanges(ranges, houseNr) {
+        if (!ranges || !houseNr) {
+            return true;
+        }
+
+        return ranges.reduce(function (matches, range) {
+            return matches || (
+                            (range.from <= houseNr)
+                            && (!range.to || houseNr <= range.to)
+                            && (!range.only_odd || houseNr % 2)
+                            && (!range.only_even || !(houseNr % 2))
+            );
+        }, false)
+    }
+
+    function matchPostCode(code) {
+        return code.replace(/[^\d]/g, '').indexOf(this.query.replace(/[^\d]/g, '')) >= 0;
+    }
+
+    function matchPostCodeWithStreet(range) {
+        var houseNr = parseInt($formHouseNumber.val());
+
+        return matchPostCode.call(this, range.code) && matchRanges(range.ranges, houseNr);
+    }
+
+    function updateStreets(data) {
+        streets = {"streets": data.streets.filter(function (x) { return !!x; }), "ranges": data.ranges || []};
+
+        $formStreet
+                .attr('disabled', false)
+                .attr('placeholder', '')
+                .attr('required', !!streets.streets.length)
+                .attr('autocomplete', '')
+                .typeahead('destroy');
+
+        if (streets.streets.length) {
+            $formStreet.attr('autocomplete', 'off').typeahead({
+                "source": streets.streets,
+                "updater": function (item) {
+                    selectStreet(item);
+                    return item;
+                }
+            });
+        } else {
+            selectStreet("");
+        }
+
+        $formPostCode.attr('autocomplete', 'off').typeahead({
+            "source": getAllCodes(),
+            "matcher": matchPostCode,
+            "showHintOnFocus": "all"
+        });
+    }
+
+    function selectStreet(name) {
+        $('#form_post_code').attr('autocomplete', 'off').val("").typeahead('destroy').typeahead({
+            "source": getCodesForStreet(name),
+            "matcher": matchPostCodeWithStreet,
+            "displayText": function (range) {
+                return range.code;
+            },
+            "showHintOnFocus": "all"
+        });
+    }
+
+    $formHouseNumber.change(function () {
+        if (!city || city.code) {
+            return ;
+        }
+
+        var codes = getCodesForStreet($formStreet.val());
+
+        var selected = codes.reduce(function (selected, range) {
+            if (selected)
+                return selected;
+
+            return matchPostCodeWithStreet.call({"query": ""}, range) && range.code;
+        }, null);
+
+        $formPostCode.attr('readonly', !!selected).val(selected || "");
+    });
+
+    $formCity.attr('autocomplete', 'off').typeahead({
+        "source": algoliaProvider,
+        "minLength": 3,
+        "items": 10,
+        "matcher": function () {
+            return true;
+        },
+        "sorter": function (items) {
+            return items;
+        },
+        "updater": function (item) {
+            updateCity(item);
+            return item.name;
+        },
+        "displayText": function (item) {
+            return item;
+        },
+        "highlighter": function (item) {
+            var rank = item.rank % 100;
+
+            var result = ['<strong>' + get_highlight(item, 'name') + '</strong>', '<small>'];
+
+            if (rank < 1) {
+                result.push(", gm. " + get_highlight(item, 'commune'));
+            }
+            if (rank < 25) {
+                result.push(", pow. " + get_highlight(item, 'county'));
+            }
+
+            result.push(", " + get_highlight(item, 'province') + '</small>');
+
+            return result.join("");
+        }
+    });
+</script>
+</body>
+</html>

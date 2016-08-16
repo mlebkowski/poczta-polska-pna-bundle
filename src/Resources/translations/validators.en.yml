@@ -1,0 +1,6 @@
+pna:
+  no_city: There is no such city
+  post_code_mismatch: This post code does not belong to given city
+  invalid_street: There are no streets with such name
+  invalid_house_number: This house number is invalid
+  street_post_code_mismatch: This post code is invalid for given street
