@@ -66,6 +66,10 @@ class NameCodeSubscriber implements EventSubscriberInterface
     {
         $data = $event->getData();
 
+        if (false === is_array($data) && false === is_object($data)) {
+            return ;
+        }
+
         $city = $this->getValue($data, 'city');
         $postCode = $this->getValue($data, 'post_code');
 
