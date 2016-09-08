@@ -20,6 +20,21 @@
             <argument id="nassau_pna.repository.pna_city" type="service"/>
         </service>
 
+        <service class="Nassau\PocztaPolskaPnaBundle\Services\StreetsProvider\DatabaseStreetsProvider"
+                 id="nassau_poczta_polska_pna.services_streets_provider.database_streets_provider"
+                 public="false">
+            <argument id="nassau_pna.ranges_parser" type="service"/>
+        </service>
+
+        <service class="Nassau\PocztaPolskaPnaBundle\Services\StreetsProvider\CachedStreetsProvider"
+                 id="nassau_poczta_polska_pna.services_streets_provider.cached_streets_provider"
+                 public="false">
+            <argument id="doctrine_cache.providers.nassau_pna_streets_provider" type="service"/>
+            <argument id="nassau_poczta_polska_pna.services_streets_provider.database_streets_provider" type="service"/>
+        </service>
+
+        <service alias="nassau_poczta_polska_pna.services_streets_provider.cached_streets_provider" id="nassau_pna.streets_provider"/>
+
         <service class="Nassau\PocztaPolskaPnaBundle\Form\NameCodeSubscriber" id="nassau_pna.form.name_code_subscriber">
           <argument id="nassau_pna.city_provider" type="service"/>
         </service>
