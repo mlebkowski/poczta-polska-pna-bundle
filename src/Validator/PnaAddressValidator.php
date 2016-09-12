@@ -46,6 +46,11 @@ class PnaAddressValidator extends ConstraintValidator
     {
         $address = $this->createAddress($value, $constraint);
 
+        if ("" === (string)$address->getCity()) {
+            // don’t validate empty values, use a NotBlank validator for this
+            return ;
+        }
+
         $pnaCity = $this->cityProvider->findCity($address);
 
         if (false === $pnaCity instanceof PnaCityInterface) {
