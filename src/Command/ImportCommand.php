@@ -17,6 +17,7 @@ class ImportCommand extends ContainerAwareCommand
 {
     const OPTION_EXCEPTIONS = 'exceptions';
     const ARGUMENT_FILE     = 'file';
+    const OPTION_PRESERVE   = 'preserve';
 
     /**
      * {@inheritdoc}
@@ -26,7 +27,9 @@ class ImportCommand extends ContainerAwareCommand
         $this->setName('pna:import')
             ->addArgument(self::ARGUMENT_FILE, InputArgument::OPTIONAL, '', 'php://stdin')
             ->addOption(self::OPTION_EXCEPTIONS, null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL,
-                'Normalize cities with names starting with those values', ['Warszawa', 'Łódź', 'Wrocław', 'Poznań', 'Kraków']);
+                'Normalize cities with names starting with those values', ['Warszawa', 'Łódź', 'Wrocław', 'Poznań', 'Kraków'])
+            ->addOption(self::OPTION_PRESERVE, null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL,
+                'Exclude those values from normalization', ['Warszawa (Wesoła)']);
     }
 
     /**
@@ -36,6 +39,7 @@ class ImportCommand extends ContainerAwareCommand
     {
         $file = file($input->getArgument(self::ARGUMENT_FILE));
         $exceptions = $input->getOption(self::OPTION_EXCEPTIONS);
+        $preserve = $input->getOption(self::OPTION_PRESERVE);
 
         $em = $this->getContainer()->get('doctrine.orm.entity_manager');
 
@@ -67,8 +71,8 @@ class ImportCommand extends ContainerAwareCommand
 
             $data = array_combine($headers, $data);
 
-            $name = array_reduce($data['street'] ? $exceptions : [], function ($name, $exception) {
-                if (0 === strpos($name, $exception . ' (')) {
+            $name = array_reduce($data['street'] ? $exceptions : [], function ($name, $exception) use ($preserve) {
+                if (0 === strpos($name, $exception . ' (') && false === in_array($name, $preserve)) {
                     return $exception;
                 }
 
