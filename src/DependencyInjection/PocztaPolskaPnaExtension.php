@@ -28,6 +28,7 @@ class PocztaPolskaPnaExtension extends Extension implements PrependExtensionInte
 
         if ($config['index_name']) {
             $container->setParameter('pna.index_name', $config['index_name']);
+            $container->setAlias('nassau_pna.algolia_client', $config['algolia_client']);
             $loader->load('algolia_indexer.xml');
         }
     }

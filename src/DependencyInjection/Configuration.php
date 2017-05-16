@@ -21,6 +21,7 @@ class Configuration implements ConfigurationInterface
         $rootNode = $treeBuilder->root('poczta_polska_pna');
 
         $rootNode->children()->scalarNode('index_name')->defaultNull();
+        $rootNode->children()->scalarNode('algolia_client')->defaultValue('goldenline_algolia.client');
 
         return $treeBuilder;
     }

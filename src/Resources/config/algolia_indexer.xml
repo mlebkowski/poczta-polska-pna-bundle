@@ -6,7 +6,7 @@
 
     <services>
         <service class="Nassau\PocztaPolskaPnaBundle\Services\Indexer\Indexer" id="nassau_pna.indexer">
-          <argument id="goldenline_algolia.client" type="service"/>
+          <argument id="nassau_pna.algolia_client" type="service"/>
           <argument>%pna.index_name%</argument>
         </service>
     </services>
